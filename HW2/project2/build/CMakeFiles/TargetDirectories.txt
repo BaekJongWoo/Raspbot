@@ -1,3 +1,0 @@
-/home/pi/Workspace/HW2/qr_reader/build/CMakeFiles/rebuild_cache.dir
-/home/pi/Workspace/HW2/qr_reader/build/CMakeFiles/qr_reader.dir
-/home/pi/Workspace/HW2/qr_reader/build/CMakeFiles/edit_cache.dir
