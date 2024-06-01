@@ -12,6 +12,7 @@
 #define DEVICE_ADDR 0x16
 
 int fd;
+int turn_direction = 0;
 
 int write_i2c_block_data(int reg, unsigned char* data, int length) {
     unsigned char buf[length + 1];
@@ -88,6 +89,20 @@ int tracking_function() {
     }
 
     if (L1 == LOW && L2 == LOW && R1 == LOW && R2 == LOW){
+        car_stop();
+        delay(100);
+        if (turn_direction == 0) {
+            car_run(50, -50);
+            delay(500);
+        } else {
+            car_run(-50, 50);
+            delay(500);
+        }
+        car_stop();
+        delay(100);
+
+        turn_direction = !turn_direction;
+
         return 1;
     }
     return 0;
