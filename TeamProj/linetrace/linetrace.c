@@ -4,8 +4,8 @@
 #include <wiringPiI2C.h>
 #include <unistd.h>
 
-#define PIN_L1 2 
-#define PIN_L2 3
+#define PIN_L2 2
+#define PIN_L1 3
 #define PIN_R1 0
 #define PIN_R2 7
 
@@ -13,6 +13,26 @@
 
 int fd;
 int turn_direction = 2;
+
+int setup(){
+    if (wiringPiSetup() == -1) {
+        printf("WiringPi Setup Failure\n");
+        return 1;
+    }
+    else printf("WiringPi Setup Successed\n");
+
+    fd = wiringPiI2CSetup(DEVICE_ADDR);
+    if (fd == -1) {
+        printf("I2C Setup Failure\n");
+        return 1;
+    }
+    else printf("I2C Setup Successed\n");
+
+    pinMode(PIN_L1, INPUT);
+    pinMode(PIN_L2, INPUT);
+    pinMode(PIN_R1, INPUT);
+    pinMode(PIN_R2, INPUT);
+}
 
 int write_i2c_block_data(int reg, unsigned char* data, int length) {
     unsigned char buf[length + 1];
@@ -54,101 +74,87 @@ int car_stop() {
     return write_i2c_block_data(reg, stop_data, 1);
 }
 
-int decide_turn(int direction) {
-    car_stop();
-    
-    switch(direction) {
-        case 0:
-            car_run(70,70);
-            break;
-        case 1:
-            car_run(50, -50);
-            break;
-        case 2:
-            car_run(-50, 50);
-            break;
-        case 3:
-            car_run(-70, -70);
-            break;  
-        default:
-            car_stop();
-            break;
-    }
-    delay(50); // Adjust this delay for a 90-degree turn
-    return 0;
+void run_straight(int msec){
+    int speed = 75, delta = 25;
+
+    unsigned int start_time = millis();
+    while (millis() - start_time < msec){
+        int L2 = digitalRead(PIN_L2);
+        int L1 = digitalRead(PIN_L1);
+        int R1 = digitalRead(PIN_R1);
+        int R2 = digitalRead(PIN_R2);
+
+        if (L1 == LOW || L2 == LOW){ // 선이 왼쪽에 걸침
+            // 아주 약간 좌회전
+            printf("F\n");
+            car_run(speed - delta, speed + delta);
+        }
+        else if (R1 == LOW || R2 == LOW){ // 선이 오른쪽에 걸침
+            // 아주 약간 우회전
+            printf("R\n");
+            car_run(speed + delta, speed - delta);
+        }
+        else{ // 그 외의 경우
+            //직진
+            printf("L\n");
+        }
+        delay(100);
+    }    
 }
 
-int tracking_function() {
-    int L1 = digitalRead(PIN_L1);
-    int L2 = digitalRead(PIN_L2);
-    int R1 = digitalRead(PIN_R1);
-    int R2 = digitalRead(PIN_R2);
+int slow_detect() {
+    int speed = 30, delta = 10;
+    int L2, L1, R1, R2;
 
-    if ((L1 == LOW || L2 == LOW) && R2 == LOW) {
-        car_run(70, -30);
-        delay(200);
-    }
-    else if (L1 == LOW && (R1 == LOW || R2 == LOW)) {
-        car_run(-30, 70);
-        delay(200);
-    }
-    else if (L1 == LOW) {
-        car_run(-70, 70);
-        delay(50);
-    }
-    else if (R2 == LOW) {
-        car_run(70, -70);
-        delay(50);
-    }
-    else if (L2 == LOW && R1 == HIGH) {
-        car_run(-60, 60);
-        delay(20);
-    }
-    else if (L2 == HIGH && R1 == LOW) {
-        car_run(60, -60);
-        delay(20);          
-    }
-    else if (L2 == LOW && R1 == LOW) {
-        car_run(70, 70);
-    }
+    while (1){
+        L2 = digitalRead(PIN_L2);
+        L1 = digitalRead(PIN_L1);
+        R1 = digitalRead(PIN_R1);
+        R2 = digitalRead(PIN_R2);
 
-    if (L1 == LOW && L2 == LOW && R1 == LOW && R2 == LOW) {
-        car_stop();
-        delay(50);
-        decide_turn(turn_direction);
-        turn_direction = !turn_direction; // Alternate turn direction
-        return 0;
-    }
-    return 0;
+        if (L1 == LOW && R1 == LOW && (L2 == LOW && R2 == LOW)){ // 교차로 인식
+            car_stop();
+            printf("S\n");
+            break;
+        }
+
+        else if (L1 == LOW || L2 == LOW){ // 선이 왼쪽에 걸침
+            // 아주 약간 좌회전
+            printf("L\n");
+            car_run(speed - delta, speed + delta);
+        }
+        else if (R1 == LOW || R2 == LOW){ // 선이 오른쪽에 걸침
+            // 아주 약간 우회전
+            printf("R\n");
+            car_run(speed + delta, speed - delta);
+        }
+        else{ // 그 외의 경우
+            //직진
+            printf("F\n");
+            car_run(speed, speed);
+        }
+        delay(100);
+    }    
+}
+
+void turn_right(){
+    
+    car_stop();
+}
+
+void turn_left(){
+    car_run(25, 75);
+    delay(500);
+    car_stop();
 }
 
 int main() {
-    if (wiringPiSetup() == -1) {
-        printf("WiringPi Setup Failure\n");
-        return 1;
-    }
-    else printf("WiringPi Setup Successed\n");
+    setup();
 
-    fd = wiringPiI2CSetup(DEVICE_ADDR);
-    if (fd == -1) {
-        printf("I2C Setup Failure\n");
-        return 1;
-    }
-    else printf("I2C Setup Successed\n");
-
-    pinMode(PIN_L1, INPUT);
-    pinMode(PIN_L2, INPUT);
-    pinMode(PIN_R1, INPUT);
-    pinMode(PIN_R2, INPUT);
-    
-    int ret = 0;
-    while (ret == 0) {
-        ret = tracking_function();
-        delay(50);
-    }
+    //run_straight(3750);
+    slow_detect();
+    turn_left();
 
     car_stop();
-    printf("Ending\n");
-
     return 0;
 }
