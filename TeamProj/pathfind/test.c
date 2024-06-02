@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "../server/server.h"
-#include "minimax.h"
+#include "pathfind.h"
 
 #define INITIAL_BOMB 4
 
@@ -12,11 +12,11 @@ void initialize_game_state(DGIST *gameState) {
 
     // 예시 맵 설정
     int initial_map[MAP_ROW][MAP_COL] = {
-        { 0,  0,  0,  0,  0},
-        { 0,  0,  0,  0,  0},
-        { 4,  0,  0,  0,  0},
-        { 0,  2,  0,  0,  0},
-        { 0,  0,  3,  2,  2}
+        {0, 1, 4, 4, 0},
+        {0, 1, 2, 0, 0},
+        {4, 0, 0, 0, 3},
+        {0, 2, 0, 0, 4},
+        {0, 0, 3, 0, 0}
     };
 
     for (int i = 0; i < MAP_ROW; i++) {
@@ -45,17 +45,42 @@ void initialize_game_state(DGIST *gameState) {
     gameState->players[1].bomb = INITIAL_BOMB;
 }
 
+void print_map(DGIST *dgist) {
+    printf("==========MAP==========\n");
+    for (int i = 0; i < MAP_ROW; i++) {
+        for (int j = 0; j < MAP_COL; j++) {
+            printf("%d ", dgist->map[i][j].item.score);
+        }
+        printf("\n");
+    }
+    printf("=======================\n");
+}
+
+void print_player(DGIST* dgist) {
+    client_info client;
+
+    printf("==========PRINT PLAYERS==========\n");
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        client = dgist->players[i];
+        printf("++++++++++Player %d++++++++++\n", i + 1);
+        printf("Location: (%d,%d)\n", client.row, client.col);
+        printf("Score: %d\n", client.score);
+        printf("Bomb: %d\n", client.bomb);
+    }
+    printf("==========PRINT DONE==========\n");
+}
+
 int main() {
     DGIST gameState;
     initialize_game_state(&gameState);
 
-    MinimaxNode player_start = {gameState.players[0].row, gameState.players[0].col};
-    MinimaxNode opponent_start = {gameState.players[1].row, gameState.players[1].col};
+    PathfindNode current_node = {gameState.players[0].row, gameState.players[0].col};
+    PathfindNode prev_node = {-1, -1}; // 초기에는 이전 노드가 없으므로 -1로 설정
 
-    // Minimax 알고리즘을 사용하여 다음 위치 선택
-    MinimaxNode best_move = find_best_move(&gameState, player_start, opponent_start, DEPTH);
+    // Pathfind 알고리즘을 사용하여 다음 위치 선택
+    PathfindNode next_move = find_next_move(&gameState, current_node, prev_node);
 
-    printf("Best move for player from (%d, %d) is to (%d, %d)\n", player_start.row, player_start.col, best_move.row, best_move.col);
+    printf("Next move for player from (%d, %d) is to (%d, %d)\n", current_node.row, current_node.col, next_move.row, next_move.col);
 
     // 맵 출력
     print_map(&gameState);

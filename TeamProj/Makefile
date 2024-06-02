@@ -2,11 +2,11 @@
 
 # 컴파일러와 컴파일 플래그
 CXX = g++
-CXXFLAGS = -Iclient -Iserver -Iminimax -Icar_control -Iutil -Iqr -Wall -Wextra -std=c++11 `pkg-config --cflags opencv4`
+CXXFLAGS = -Iclient -Iserver -Icar_control -Iutil -Iqr -Ipathfind -Wall -Wextra -std=c++11 `pkg-config --cflags opencv4`
 LDFLAGS = -lm -lpthread -lwiringPi `pkg-config --libs opencv4`
 
 # 소스 파일과 오브젝트 파일
-C_SRC = main.c minimax/minimax.c client/client.c car_control/car_control.c util/util.c
+C_SRC = main.c client/client.c car_control/car_control.c util/util.c pathfind/pathfind.c
 CPP_SRC = qr/qr.cpp
 C_OBJ = $(C_SRC:.c=.o)
 CPP_OBJ = $(CPP_SRC:.cpp=.o)

@@ -6,15 +6,14 @@
 #include "server/server.h"
 #include "client/client.h"
 #include "car_control/car_control.h"
-#include "minimax/minimax.h"
 #include "util/util.h"
 #include "qr/qr.h"
+#include "pathfind/pathfind.h"
 
 int main(int argc, char *argv[]) {    
     DGIST gameState;
-    MinimaxNode player_start, opponent_start;
-    MinimaxNode prev_node, next_node;
-    Direction prev_dir, next_dir;
+    PathfindNode current_node, prev_node, next_node;
+    Direction current_dir, next_dir;
 
     if (argc != 4) {
         fprintf(stderr, "Usage: %s <IP> <Port> <PlayerID>\n", argv[0]);
@@ -24,6 +23,9 @@ int main(int argc, char *argv[]) {
     const char *server_ip = argv[1];
     const int server_port = atoi(argv[2]);
     const int player_id = atoi(argv[3]);
+
+    //모터 셋업
+    setup();
 
     QRCodeScanner* scanner = createQRCodeScanner();
     if (!initializeQRCodeScanner(scanner)) {
@@ -50,12 +52,14 @@ int main(int argc, char *argv[]) {
     send_action(sock, &clientAction);
 
     if (player_id == 0){
-        prev_node = (MinimaxNode){0,0};
-        prev_dir = right;
+        prev_node = (PathfindNode){0,0};
+        current_node = (PathfindNode){0,1};
+        current_dir = right;
     }
     else{
-        prev_node = (MinimaxNode){4,4};
-        prev_dir = left;
+        prev_node = (PathfindNode){4,4};
+        current_node = (PathfindNode){4,3};
+        current_dir = left;
     }
 
     while (1) {
@@ -72,47 +76,30 @@ int main(int argc, char *argv[]) {
         print_map(&gameState);
         print_player(&gameState);
 
-        // Minimax 알고리즘을 사용하여 다음 위치 선택
-        if (player_id == 0){
-            player_start.row = gameState.players[0].row;
-            player_start.col = gameState.players[0].col;
-            opponent_start.row = gameState.players[1].row;
-            opponent_start.col = gameState.players[1].col;
-        } else {
-            player_start.row = gameState.players[1].row;
-            player_start.col = gameState.players[1].col;
-            opponent_start.row = gameState.players[0].row;
-            opponent_start.col = gameState.players[0].col;
-        }
-    
-        if (opponent_start.row < 0 || opponent_start.row > MAP_ROW - 1 || 
-            opponent_start.col < 0 || opponent_start.col > MAP_COL - 1){
-            if (player_id == 0){
-                opponent_start.row = 4;
-                opponent_start.col = 4;
-            }
-            else{
-                opponent_start.row = 0;
-                opponent_start.col = 0;
-            }
-        }
-        
-        // 다음 노드를 통해 다음 행동 (직진 / U턴 / 좌회전 / 우회전) 결정
-        next_node = find_best_move(&gameState, player_start, opponent_start, DEPTH);
-        next_dir = get_dir(prev_node, next_node);
+        printf("start find\n");
+        // 다음 위치 선택
+        next_node = find_next_move(&gameState, current_node, prev_node);
+        next_dir = get_dir(current_node, next_node);
         if (next_dir == unknown){
-            if (prev_dir == up) next_dir = down;
-            if (prev_dir == down) next_dir = up;
-            if (prev_dir == right) next_dir = left;
-            if (prev_dir == left) next_dir = right;
+            if (current_dir == up) next_dir = down;
+            if (current_dir == down) next_dir = up;
+            if (current_dir == right) next_dir = left;
+            if (current_dir == left) next_dir = right;
         }
-        Turn turn = get_turn(prev_dir, next_dir);
+        Turn turn = get_turn(current_dir, next_dir);
+        printf("prev node: {%d %d} current Node: {%d %d}, next_node: {%d %d}\n", prev_node.row, prev_node.col, 
+                current_node.row, current_node.col, next_node.row, next_node.col);
+        print_dir(current_dir, next_dir, turn);
+
         // 정보 업데이트
-        prev_node = next_node;
-        prev_dir = next_dir;
+        prev_node = current_node;
+        current_node = next_node;
+        current_dir = next_dir;
 
         //1차 직진 이후 끝 탐색 이후 액션
-        run_straight(3750);
+        printf("run\n");
+        run_straight(3500);
+        printf("detect\n");
         slow_detect();
         switch(turn){
             case go_straight:
@@ -148,8 +135,6 @@ int main(int argc, char *argv[]) {
 
         // 클라이언트의 액션을 서버에 보냄
         send_action(sock, &clientAction);
-
-        sleep(1); // 1초 대기
     }
 
     close(sock);

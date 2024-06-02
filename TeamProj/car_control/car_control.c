@@ -69,7 +69,7 @@ int car_stop() {
 }
 
 void run_straight(int msec){
-    int speed = 75, delta = 25;
+    int speed = 50, delta = 30;
 
     unsigned int start_time = millis();
     while (millis() - start_time < msec){
@@ -80,19 +80,16 @@ void run_straight(int msec){
 
         if (L1 == LOW || L2 == LOW){ // 선이 왼쪽에 걸침
             // 아주 약간 좌회전
-            printf("F\n");
             car_run(speed - delta, speed + delta);
         }
         else if (R1 == LOW || R2 == LOW){ // 선이 오른쪽에 걸침
             // 아주 약간 우회전
-            printf("R\n");
             car_run(speed + delta, speed - delta);
         }
         else{ // 그 외의 경우
             //직진
-            printf("L\n");
         }
-        delay(100);
+        delay(10);
     }    
 }
 
@@ -106,7 +103,7 @@ int slow_detect() {
         R1 = digitalRead(PIN_R1);
         R2 = digitalRead(PIN_R2);
 
-        if (L1 == LOW && R1 == LOW && (L2 == LOW && R2 == LOW)){ // 교차로 인식
+        if (L1 == LOW && R1 == LOW && (L2 == LOW || R2 == LOW)){ // 교차로 인식
             //car_stop();
             printf("S\n");
             break;
@@ -114,26 +111,23 @@ int slow_detect() {
 
         else if (L1 == LOW || L2 == LOW){ // 선이 왼쪽에 걸침
             // 아주 약간 좌회전
-            printf("L\n");
             car_run(speed - delta, speed + delta);
         }
         else if (R1 == LOW || R2 == LOW){ // 선이 오른쪽에 걸침
             // 아주 약간 우회전
-            printf("R\n");
             car_run(speed + delta, speed - delta);
         }
         else{ // 그 외의 경우
             //직진
-            printf("F\n");
             car_run(speed, speed);
         }
-        delay(100);
+        delay(10);
     }    
 }
 
 void car_turn_right(){
     car_run(30, 30);
-    delay(350);
+    delay(300);
     car_run(75, 0);
     delay(1000);
     car_run(50, 0);
@@ -148,7 +142,7 @@ void car_turn_right(){
 
 void car_turn_left(){
     car_run(30, 30);
-    delay(350);
+    delay(300);
     car_run(0, 75);
     delay(1000);
     car_run(0,50);
