@@ -1,28 +1,84 @@
 #include <stdio.h>
-#include "../include/Astar.h"
-#include "server.h" // 서버로부터 주어진 헤더 파일 포함
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include "server/server.h"
+#include "client/client.h"
+#include "minimax/minimax.h"
 
-int main() {
-    DGIST gameState;
-    // 초기화 및 서버로부터 gameState를 받아오는 로직이 있어야 합니다.
+DGIST gameState;
 
-    예시로 맵 초기화 (실제로는 서버로부터 받아와야 함)
-    for (int i = 0; i < MAP_ROW; i++) {
-        for (int j = 0; j < MAP_COL; j++) {
-            gameState.map[i][j].item.status = nothing;
-            gameState.map[i][j].item.score = 0;
-        }
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <IP> <Port>\n", argv[0]);
+        return 1;
     }
 
-    // 시작 위치와 목적지 설정 (예시로 설정)
-    int start_row = 0, start_col = 0;
-    int dest_row = 3, dest_col = 3;
+    const char *server_ip = argv[1];
+    const int server_port = atoi(argv[2]);
+
+    int sock = connect_to_server(server_ip, server_port);
+    if (sock < 0) {
+        return -1;
+    }
 
     ClientAction clientAction;
-    aStarSearch(&gameState, start_row, start_col, dest_row, dest_col, &clientAction);
 
-    // 결과를 서버에 전송하는 로직이 있어야 합니다.
-    printf("Next Action: Move to (%d, %d) with action %d\n", clientAction.row, clientAction.col, clientAction.action);
+    // 게임 상태 초기화
+    memset(&gameState, 0, sizeof(DGIST));
 
+    // 플레이어를 (0,0)으로 이동시키는 정보 설정
+    clientAction.row = 0;
+    clientAction.col = 0;
+    clientAction.action = move;
+
+    // 초기 위치 정보를 서버에 전송
+    send_action(sock, &clientAction);
+
+    MinimaxNode prev_pos = {0, 0};
+
+    while (1) {
+        // 서버로부터 DGIST 구조체 수신
+        if (receive_update(sock, &gameState) <= 0) {
+            printf("Connection closed or error occurred\n");
+            close(sock);
+            return -1;
+        }
+
+        // 맵 출력
+        printf("\nUpdated map from server:\n");
+        print_map(&gameState);
+
+        // 플레이어 상태 출력
+        print_player(&gameState);
+
+        MinimaxNode player_start, opponent_start;
+        // Minimax 알고리즘을 사용하여 다음 위치 선택
+        if (gameState.players[0].row == prev_pos.row && gameState.players[0].col == prev_pos.col){
+            player_start.row = gameState.players[0].row;
+            player_start.col = gameState.players[0].col;
+            opponent_start.row = gameState.players[1].row;
+            opponent_start.col = gameState.players[1].col;
+        } else {
+            player_start.row = gameState.players[1].row;
+            player_start.col = gameState.players[1].col;
+            opponent_start.row = gameState.players[0].row;
+            opponent_start.col = gameState.players[0].col;
+        }
+        
+        MinimaxNode best_move = find_best_move(&gameState, player_start, opponent_start, DEPTH);
+        prev_pos = best_move;
+
+        clientAction.row = best_move.row;
+        clientAction.col = best_move.col;
+        clientAction.action = move; // move 액션으로 설정
+
+        // 클라이언트의 액션을 서버에 보냄
+        send_action(sock, &clientAction);
+
+        sleep(1); // 주기적으로 행동을 수행하도록 설정 (예: 1초 대기)
+    }
+
+    close(sock);
     return 0;
 }

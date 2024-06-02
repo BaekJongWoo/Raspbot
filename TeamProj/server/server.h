@@ -1,3 +1,8 @@
+#ifndef SERVER_H
+#define SERVER_H
+
+#include <arpa/inet.h>
+
 #define MAX_CLIENTS 2
 
 #define _MAP_ROW 4
@@ -6,11 +11,11 @@
 #define MAP_COL _MAP_COL + 1
 #define MAP_SIZE = MAP_COL*MAP_ROW
 
-const int MAX_SCORE = 4; // Item max score
-const int SETTING_PERIOD = 20; //Boradcast & Item generation period
-const int INITIAL_ITEM = 10; //Initial number of item
-const int INITIAL_BOMB = 4; //The number of bomb for each user
-const int SCORE_DEDUCTION = 2; //The amount of score deduction due to bomb
+extern const int MAX_SCORE; // Item max score
+extern const int SETTING_PERIOD; //Boradcast & Item generation period
+extern const int INITIAL_ITEM; //Initial number of item
+extern const int INITIAL_BOMB; //The number of bomb for each user
+extern const int SCORE_DEDUCTION; //The amount of score deduction due to bomb
 
 //섹션1 서버가 여러분에게 주는 구조체에요.
 
@@ -81,3 +86,5 @@ void printPlayer(void* arg);
 //이거 구현을 조교몬이 한 거라서 (조교몬의 피땀눈물...) 오작동이 있을 수 있어요.
 //오류가 발생한 상황과 오류 내역을 lhyzone@dgist.ac.kr로 보내주면 수정해줄게요.
 //오류를 수정하면 안내해드릴테니 git pull을 이용해서 항상 최신상태로 유지하세요.
+
+#endif // SERVER_H

@@ -12,7 +12,18 @@
 #define DEVICE_ADDR 0x16
 
 int fd;
-int turn_direction = 2;
+int turn_direction = 0; // 0 for left, 1 for right
+
+const int BASE_SPEED = 70;
+const int MAX_SPEED = 100;
+
+// PID constants
+const float Kp = 1.0;
+const float Ki = 0;
+const float Kd = 0;
+
+int error_sum = 0;
+int last_error = 0;
 
 int write_i2c_block_data(int reg, unsigned char* data, int length) {
     unsigned char buf[length + 1];
@@ -54,27 +65,14 @@ int car_stop() {
     return write_i2c_block_data(reg, stop_data, 1);
 }
 
-int decide_turn(int direction) {
-    car_stop();
-    
-    switch(direction) {
-        case 0:
-            car_run(70,70);
-            break;
-        case 1:
-            car_run(50, -50);
-            break;
-        case 2:
-            car_run(-50, 50);
-            break;
-        case 3:
-            car_run(-70, -70);
-            break;  
-        default:
-            car_stop();
-            break;
+int make_turn(int direction) {
+    if (direction == 0) {
+        car_run(-50, 50); // Turn left
+    } else {
+        car_run(50, -50); // Turn right
     }
-    delay(50); // Adjust this delay for a 90-degree turn
+    delay(100); // Adjust this delay for a 90-degree turn
+    car_stop();
     return 0;
 }
 
@@ -109,13 +107,39 @@ int tracking_function() {
         delay(20);          
     }
     else if (L2 == LOW && R1 == LOW) {
-        car_run(70, 70);
+        int error = 0;
+
+        // Calculate error based on sensor states
+        if (L1 == LOW) error += 3;
+        if (L2 == LOW) error += 1;
+        if (R1 == LOW) error -= 1;
+        if (R2 == LOW) error -= 3;
+
+        // Calculate PID terms
+        error_sum += error;
+        int d_error = error - last_error;
+
+        int pid_output = Kp * error + Ki * error_sum + Kd * d_error;
+
+        // Calculate motor speeds
+        int left_speed = BASE_SPEED + pid_output;
+        int right_speed = BASE_SPEED - pid_output;
+
+        // Constrain speeds to maximum limits
+        if (left_speed > MAX_SPEED) left_speed = MAX_SPEED;
+        if (left_speed < -MAX_SPEED) left_speed = -MAX_SPEED;
+        if (right_speed > MAX_SPEED) right_speed = MAX_SPEED;
+        if (right_speed < -MAX_SPEED) right_speed = -MAX_SPEED;
+
+        car_run(left_speed, right_speed);
+
+        last_error = error;
     }
 
     if (L1 == LOW && L2 == LOW && R1 == LOW && R2 == LOW) {
         car_stop();
         delay(50);
-        decide_turn(turn_direction);
+        make_turn(turn_direction);
         turn_direction = !turn_direction; // Alternate turn direction
         return 0;
     }
