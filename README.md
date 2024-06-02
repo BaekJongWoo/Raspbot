@@ -9,3 +9,8 @@
   - 백종우 
   - 강준서
   - 배형준
+
+## 폴더 내용
+- **HW2:** assignment 2 과제
+- **hw2:** hw2 과제
+- **TeamProj:** Raspbot 팀 프로젝트
