@@ -3,7 +3,7 @@
 
 #include "../server/server.h"
 
-#define DEPTH 5
+#define DEPTH 11
 #define INF 1000
 
 typedef struct {

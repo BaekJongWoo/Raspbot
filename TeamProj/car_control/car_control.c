@@ -1,15 +1,9 @@
+#include "car_control.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <wiringPi.h>
 #include <wiringPiI2C.h>
-#include <unistd.h>
-
-#define PIN_L2 2
-#define PIN_L1 3
-#define PIN_R1 0
-#define PIN_R2 7
-
-#define DEVICE_ADDR 0x16
 
 int fd;
 int turn_direction = 2;
@@ -113,7 +107,7 @@ int slow_detect() {
         R2 = digitalRead(PIN_R2);
 
         if (L1 == LOW && R1 == LOW && (L2 == LOW && R2 == LOW)){ // 교차로 인식
-            car_stop();
+            //car_stop();
             printf("S\n");
             break;
         }
@@ -137,24 +131,50 @@ int slow_detect() {
     }    
 }
 
-void turn_right(){
-    
-    car_stop();
+void car_turn_right(){
+    car_run(30, 30);
+    delay(350);
+    car_run(75, 0);
+    delay(1000);
+    car_run(50, 0);
+
+    while(1){
+        int L1 = digitalRead(PIN_L1);
+        int R1 = digitalRead(PIN_R1);
+        
+        if (L1 == LOW || R1 == LOW) break;
+    }
 }
 
-void turn_left(){
-    car_run(25, 75);
-    delay(500);
-    car_stop();
+void car_turn_left(){
+    car_run(30, 30);
+    delay(350);
+    car_run(0, 75);
+    delay(1000);
+    car_run(0,50);
+
+    while(1){
+        int L1 = digitalRead(PIN_L1);
+        int R1 = digitalRead(PIN_R1);
+        
+        if (L1 == LOW || R1 == LOW) break;
+    }
 }
 
-int main() {
-    setup();
+void car_turn_back(){
+    car_run(-60, 60);
+    delay(1500);
+    car_run(-50, 50);
 
-    //run_straight(3750);
-    slow_detect();
-    turn_left();
+    while(1){
+        int L1 = digitalRead(PIN_L1);
+        int R1 = digitalRead(PIN_R1);
+        
+        if (L1 == LOW || R1 == LOW) break;
+    }
+}
 
-    car_stop();
-    return 0;
+void car_move_little(){
+    car_run(60,60);
+    delay(1000);
 }

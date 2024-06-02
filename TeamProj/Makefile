@@ -1,12 +1,16 @@
 # Makefile
 
 # 컴파일러와 컴파일 플래그
-CC = gcc
-CFLAGS = -Iclient -Iserver -Iminimax -Wall -Wextra -std=c11
+CXX = g++
+CXXFLAGS = -Iclient -Iserver -Iminimax -Icar_control -Iutil -Iqr -Wall -Wextra -std=c++11 `pkg-config --cflags opencv4`
+LDFLAGS = -lm -lpthread -lwiringPi `pkg-config --libs opencv4`
 
 # 소스 파일과 오브젝트 파일
-SRC = main.c minimax/minimax.c client/client.c
-OBJ = $(SRC:.c=.o)
+C_SRC = main.c minimax/minimax.c client/client.c car_control/car_control.c util/util.c
+CPP_SRC = qr/qr.cpp
+C_OBJ = $(C_SRC:.c=.o)
+CPP_OBJ = $(CPP_SRC:.cpp=.o)
+OBJ = $(C_OBJ) $(CPP_OBJ)
 
 # 실행 파일 이름
 TARGET = myprogram
@@ -16,11 +20,14 @@ all: $(TARGET)
 
 # 실행 파일 생성 규칙
 $(TARGET): $(OBJ)
-	$(CC) $(OBJ) -o $(TARGET) -lm -lpthread
+	$(CXX) $(OBJ) -o $(TARGET) $(LDFLAGS)
 
 # 개별 소스 파일의 오브젝트 파일 생성 규칙
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 # 청소 규칙
 clean:
